@@ -40,11 +40,13 @@ func main() {
 			if len(args) < 1 {
 				return flag.ErrHelp
 			}
-			parts := voiceParts(pronounceBox, *pronounceVoice)
 
-			tosay := []rune(strings.Join(args, " "))
-
-			selectedParts := []string{}
+			var (
+				parts         = voiceParts(pronounceBox, *pronounceVoice)
+				tosay         = []rune(strings.Join(args, " "))
+				selectedParts = []string{}
+				selectedFiles = []string{}
+			)
 
 			for i := 0; i < len(tosay); {
 				maxLen := 0
@@ -63,11 +65,10 @@ func main() {
 					i += maxLen
 					selectedParts = append(selectedParts, selectedPart)
 				} else {
+					log.Printf("unknown part: %q", tosay[i])
 					i++ // skip unmatched parts
 				}
 			}
-
-			selectedFiles := []string{}
 
 			for _, part := range selectedParts {
 				randomFile := parts[part][rand.Intn(len(parts[part]))]

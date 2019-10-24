@@ -8,10 +8,4 @@ workflows:
     jobs:
       - moul/golang-build:
           gopkg: ultre.me/speechotron
-      - moul/golang-build:
-          gopkg: ultre.me/speechotron
-          tag: '1.12'
-      - moul/golang-build:
-          gopkg: ultre.me/speechotron
-          tag: '1.11'
       - moul/docker-build

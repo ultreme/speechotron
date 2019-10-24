@@ -32,10 +32,10 @@ changelog:
 brew:
   name: speechotron
   github:
-    owner: moul
-    name: homebrew-moul
+    owner: ultreme
+    name: homebrew-ultreme
   commit_author:
     name: moul-bot
     email: "bot@ultre.me"
-  homepage: https://manfred.life/
+  homepage: https://ultre.me/
   description: "speechotron"

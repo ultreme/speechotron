@@ -33,7 +33,7 @@ func main() {
 
 	pronounce := &ffcli.Command{
 		Name:     "pronounce",
-		Usage:    "pronounce [-v VOICE] PRONOUNCE",
+		Usage:    "pronounce [-v VOICE] WORDS...",
 		FlagSet:  pronounceFlags,
 		LongHelp: fmt.Sprintf("VOICES\n  %s", strings.Join(append(voiceList(pronounceBox), "RANDOM"), "\n  ")),
 		Exec: func(args []string) error {
@@ -95,7 +95,7 @@ func main() {
 
 	say := &ffcli.Command{
 		Name:     "say",
-		Usage:    "say [-v VOICE] SAY",
+		Usage:    "say [-v VOICE] WORDS...",
 		FlagSet:  sayFlags,
 		LongHelp: fmt.Sprintf("VOICES\n  %s", strings.Join(append(voiceList(sayBox), "RANDOM"), "\n  ")),
 		Exec: func(args []string) error {

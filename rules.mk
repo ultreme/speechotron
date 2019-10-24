@@ -1,11 +1,11 @@
 # +--------------------------------------------------------------+
-# | * * *                moul.io/rules.mk                        |
+# | * * *                ultre.me/rules.mk                        |
 # +--------------------------------------------------------------+
 # |                                                              |
 # |     ++              ______________________________________   |
 # |     ++++           /                                      \  |
 # |      ++++          |                                      |  |
-# |    ++++++++++      |   https://moul.io/rules.mk is a set  |  |
+# |    ++++++++++      |   https://ultre.me/rules.mk is a set  |  |
 # |   +++       |      |   of common Makefile rules that can  |  |
 # |   ++         |     |   be configured from the Makefile    |  |
 # |   +  -==   ==|     |   or with environment variables.     |  |

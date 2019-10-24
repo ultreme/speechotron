@@ -30,12 +30,12 @@ changelog:
     - '^docs:'
     - '^test:'
 brew:
-  name: golang-repo-template
+  name: speechotron
   github:
     owner: moul
     name: homebrew-moul
   commit_author:
     name: moul-bot
-    email: "bot@moul.io"
+    email: "bot@ultre.me"
   homepage: https://manfred.life/
-  description: "golang-repo-template"
+  description: "speechotron"

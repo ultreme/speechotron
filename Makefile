@@ -1,5 +1,5 @@
-GOPKG ?=	moul.io/golang-repo-template
-DOCKER_IMAGE ?=	moul/golang-repo-template
+GOPKG ?=	ultre.me/speechotron
+DOCKER_IMAGE ?=	moul/speechotron
 GOBINS ?=	.
 NPM_PACKAGES ?=	.
 

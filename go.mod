@@ -1,3 +1,3 @@
-module moul.io/golang-repo-template
+module ultre.me/speechotron
 
 go 1.13

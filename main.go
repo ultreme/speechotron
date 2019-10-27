@@ -1,11 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"errors"
 	"flag"
 	"fmt"
+	"io/ioutil"
 	"log"
 	"math/rand"
+	"net/http"
 	"os"
 	"os/exec"
 	"sort"
@@ -29,6 +32,9 @@ func main() {
 
 		pronounceFlags = flag.NewFlagSet("pronounce", flag.ExitOnError)
 		pronounceVoice = pronounceFlags.String("v", "RANDOM", "voice")
+
+		serverFlags = flag.NewFlagSet("server", flag.ExitOnError)
+		serverBind  = serverFlags.String("b", ":8000", "bind address")
 	)
 
 	pronounce := &ffcli.Command{
@@ -40,56 +46,15 @@ func main() {
 			if len(args) < 1 {
 				return flag.ErrHelp
 			}
-			parts := voiceParts(pronounceBox, *pronounceVoice)
 
-			tosay := []rune(strings.Join(args, " "))
+			tosay := strings.Join(args, " ")
 
-			selectedParts := []string{}
-
-			for i := 0; i < len(tosay); {
-				maxLen := 0
-				selectedPart := ""
-				for partString := range parts {
-					part := []rune(partString)
-					if len(part) <= maxLen {
-						continue
-					}
-					if string(part) == string(tosay[i:i+len(part)]) {
-						maxLen = len(part)
-						selectedPart = string(part)
-					}
-				}
-				if selectedPart != "" {
-					i += maxLen
-					selectedParts = append(selectedParts, selectedPart)
-				} else {
-					i++ // skip unmatched parts
-				}
+			err := pronounceToFile(*pronounceVoice, tosay, "out.mp3")
+			if err != nil {
+				return fmt.Errorf("pronounce to file: %w", err)
 			}
 
-			selectedFiles := []string{}
-
-			for _, part := range selectedParts {
-				randomFile := parts[part][rand.Intn(len(parts[part]))]
-				selectedFiles = append(selectedFiles, fmt.Sprintf("./pronounce/%s", randomFile))
-			}
-
-			cmdArgs := append(selectedFiles, "out.mp3")
-			log.Printf("+ sox %s", strings.Join(cmdArgs, " "))
-			cmd := exec.Command("sox", cmdArgs...)
-			cmd.Stdout = os.Stdout
-			cmd.Stderr = os.Stderr
-			if err := cmd.Run(); err != nil {
-				return err
-			}
-
-			log.Printf("+ afplay out.mp3")
-			cmd = exec.Command("afplay", "out.mp3")
-			if err := cmd.Run(); err != nil {
-				return err
-			}
-
-			return nil
+			return playFile("out.mp3")
 		},
 	}
 
@@ -107,9 +72,60 @@ func main() {
 		},
 	}
 
+	server := &ffcli.Command{
+		Name:    "server",
+		Usage:   "server [OPTS]",
+		FlagSet: serverFlags,
+		Exec: func(args []string) error {
+			pronounceHandler := func(w http.ResponseWriter, req *http.Request) {
+				var (
+					text     string
+					voice    = "RANDOM"
+					filename = "out.mp3" // FIXME: caching with hash
+				)
+
+				if query := req.URL.Query()["text"]; len(query) > 0 {
+					text = query[0]
+				}
+				if query := req.URL.Query()["voice"]; len(query) > 0 {
+					voice = query[0]
+				}
+				if text == "" {
+					http.Error(w, "invalid input", 500)
+					return
+				}
+
+				if err := pronounceToFile(voice, text, filename); err != nil {
+					http.Error(w, fmt.Sprintf("failed to generate: %v", err), 500)
+					return
+				}
+
+				content, err := ioutil.ReadFile(filename)
+				if err != nil {
+					http.Error(w, fmt.Sprintf("failed to read file: %w", err), 500)
+					return
+				}
+				b := bytes.NewBuffer(content)
+
+				w.Header().Set("Content-Type", "audio/mpeg")
+
+				_, err = b.WriteTo(w)
+				if err != nil {
+					http.Error(w, fmt.Sprintf("failed to write to stream: %v", err), 500)
+					return
+				}
+
+				log.Printf("mp3 sent, voice=%q, text=%q", voice, text)
+			}
+			http.HandleFunc("/api/pronounce", pronounceHandler)
+			log.Printf("Starting server on %q", *serverBind)
+			return http.ListenAndServe(*serverBind, nil)
+		},
+	}
+
 	root := &ffcli.Command{
 		Usage:       "speechotron <subcommand> [flags] [args...]",
-		Subcommands: []*ffcli.Command{pronounce, say},
+		Subcommands: []*ffcli.Command{pronounce, say, server},
 		Exec:        func([]string) error { return flag.ErrHelp },
 	}
 
@@ -119,6 +135,55 @@ func main() {
 		}
 		log.Fatalf("fatal: %+v", err)
 	}
+}
+
+func playFile(dest string) error {
+	log.Printf("+ afplay %s", dest)
+	cmd := exec.Command("afplay", dest)
+	return cmd.Run()
+}
+
+func pronounceToFile(voice string, text string, dest string) error {
+	tosay := []rune(text)
+
+	parts := voiceParts(pronounceBox, voice)
+	selectedParts := []string{}
+
+	for i := 0; i < len(tosay); {
+		maxLen := 0
+		selectedPart := ""
+		for partString := range parts {
+			part := []rune(partString)
+			if len(part) <= maxLen {
+				continue
+			}
+			if string(part) == string(tosay[i:i+len(part)]) {
+				maxLen = len(part)
+				selectedPart = string(part)
+			}
+		}
+		if selectedPart != "" {
+			i += maxLen
+			selectedParts = append(selectedParts, selectedPart)
+		} else {
+			i++ // skip unmatched parts
+		}
+	}
+
+	selectedFiles := []string{}
+
+	for _, part := range selectedParts {
+		randomFile := parts[part][rand.Intn(len(parts[part]))]
+		selectedFiles = append(selectedFiles, fmt.Sprintf("./pronounce/%s", randomFile))
+	}
+
+	cmdArgs := append(selectedFiles, dest)
+	log.Printf("+ sox %s", strings.Join(cmdArgs, " "))
+	cmd := exec.Command("sox", cmdArgs...)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+
+	return cmd.Run()
 }
 
 func voiceList(box *packr.Box) []string {
